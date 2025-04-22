@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: study-scheduler-generator-app-deploy
+  labels:
+    name: study-scheduler-generator-app-deploy
+    app: study-scheduler-generator-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: study-scheduler-generator-app-pod
+      app: study-scheduler-generator-app
+  template:
+    metadata:
+      name: study-scheduler-generator-app-pod
+      labels:
+        name: study-scheduler-generator-app-pod
+        app: study-scheduler-generator-app
+    spec:
+      containers:
+        - name: study-scheduler-generator-app
+          image: pedrosaxu/study-scheduler-generator
+          ports:
+            - containerPort: 5000

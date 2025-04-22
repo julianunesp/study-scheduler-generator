@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: study-scheduler-generator-app-svc
+  labels:
+    name: study-scheduler-generator-app-svc
+    app: study-scheduler-generator-app
+spec:
+  type: NodePort
+  selector:
+    name: study-scheduler-generator-app-pod
+    app: study-scheduler-generator-app
+  ports:
+    - port: 5000
+      nodePort: 30364
