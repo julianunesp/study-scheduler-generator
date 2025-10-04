@@ -1,18 +1,14 @@
 {
-  "version": 2,
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "run.py"
-    }
-  ],
-  "env": {
-    "PYTHONPATH": "/var/task"
-  },
-  "functions": {
-    "run.py": {
-      "memory": 1024,
-      "runtime": "python3.9"
-    }
-  }
+    "builds": [
+        {
+            "src": "run.py",
+            "use": "@vercel/python"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "run.py"
+        }
+    ]
 }
