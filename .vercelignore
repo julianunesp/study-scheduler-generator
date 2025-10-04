@@ -1,0 +1,47 @@
+# Vercel Ignore - Only exclude what's not needed for deployment
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+
+# Testing
+test_*.py
+*_test.py
+
+# Documentation (keep README.md)
+*.md
+!README.md
+
+# Deployment configs for other platforms
+deployment/
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Local development
+.env.local
+token.pickle
+credentials.json
+
+# Logs
+*.log
