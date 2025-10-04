@@ -160,6 +160,9 @@ def download_sample():
 def generate_schedule():
     """Process form data and generate study schedule."""
     try:
+        import time
+        start_time = time.time()
+        
         # Extract form data
         start_date_str = request.form['start_date']
         study_days_list = request.form.getlist('study_days')
@@ -188,12 +191,28 @@ def generate_schedule():
             try:
                 # Use AI agent to parse HTML
                 parser = get_html_parser()
+                
+                # Check if we're approaching timeout (55 seconds for safety margin)
+                elapsed = time.time() - start_time
+                if elapsed > 55:
+                    return jsonify({
+                        'success': False, 
+                        'error': 'Request timeout. HTML parsing is taking too long. Please try with a smaller file or use spreadsheet format.'
+                    }), 408
+                
                 classes = parser.parse_html_to_classes_list(html_content)
                 
                 if not classes:
                     return jsonify({'success': False, 'error': 'Could not extract course content from HTML'}), 400
             except Exception as e:
-                return jsonify({'success': False, 'error': f'Error parsing HTML: {str(e)}'}), 500
+                error_msg = str(e)
+                # Check if it's a timeout-related error
+                if 'timeout' in error_msg.lower() or 'timed out' in error_msg.lower():
+                    return jsonify({
+                        'success': False, 
+                        'error': 'AI parsing timeout. Please try with a smaller HTML file or use spreadsheet format instead.'
+                    }), 408
+                return jsonify({'success': False, 'error': f'Error parsing HTML: {error_msg}'}), 500
         else:  # spreadsheet
             if 'spreadsheet' not in request.files:
                 return jsonify({'success': False, 'error': 'No file uploaded'}), 400

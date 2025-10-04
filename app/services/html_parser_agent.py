@@ -33,10 +33,12 @@ class HTMLCourseParser:
         if not api_key:
             raise ValueError("GOOGLE_API_KEY not found in environment variables")
         
+        # Use REST transport to avoid gRPC issues in serverless environments
         self.model = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash-exp",  # Using latest model
             temperature=0.0,  # Low temperature for consistency
-            google_api_key=api_key
+            google_api_key=api_key,
+            transport="rest"  # Force REST API instead of gRPC for Vercel compatibility
         )
         
         # Setup output parser
