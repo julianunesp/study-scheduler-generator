@@ -7,8 +7,7 @@
     }
   ],
   "env": {
-    "PYTHONPATH": "/var/task",
-    "ENABLE_HTML_PARSING": "false"
+    "PYTHONPATH": "/var/task"
   },
   "functions": {
     "run.py": {
