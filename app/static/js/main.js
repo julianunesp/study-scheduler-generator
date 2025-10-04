@@ -461,6 +461,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize managers
     LoadingManager.init();
     
+    // All features are enabled by default
+    // Feature flag system removed for simplicity
+    
     // File upload visual feedback for all file inputs
     const fileInputs = document.querySelectorAll('input[type="file"]');
     fileInputs.forEach(function(fileInput) {

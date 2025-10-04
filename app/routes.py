@@ -192,9 +192,9 @@ def generate_schedule():
                 # Use AI agent to parse HTML
                 parser = get_html_parser()
                 
-                # Check if we're approaching timeout (55 seconds for safety margin)
+                # Check if we're approaching timeout (8 seconds for Vercel free tier)
                 elapsed = time.time() - start_time
-                if elapsed > 55:
+                if elapsed > 8:
                     return jsonify({
                         'success': False, 
                         'error': 'Request timeout. HTML parsing is taking too long. Please try with a smaller file or use spreadsheet format.'

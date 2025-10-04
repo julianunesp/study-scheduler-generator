@@ -2,7 +2,6 @@
 import os
 import re
 from typing import List
-from datetime import time
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
@@ -35,7 +34,7 @@ class HTMLCourseParser:
         
         # Use REST transport to avoid gRPC issues in serverless environments
         self.model = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",  # Using latest model
+            model="gemini-1.5-flash-8b",  # Using latest model
             temperature=0.0,  # Low temperature for consistency
             google_api_key=api_key,
             transport="rest"  # Force REST API instead of gRPC for Vercel compatibility

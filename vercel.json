@@ -1,26 +1,19 @@
 {
-    "version": 2,
-    "builds": [
-        {
-            "src": "run.py",
-            "use": "@vercel/python",
-            "config": {
-                "maxLambdaSize": "50mb"
-            }
-        }
-    ],
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "run.py"
-        }
-    ],
-    "env": {
-        "PYTHONPATH": "/var/task"
-    },
-    "functions": {
-        "run.py": {
-            "maxDuration": 60
-        }
+  "version": 2,
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "run.py"
     }
+  ],
+  "env": {
+    "PYTHONPATH": "/var/task",
+    "ENABLE_HTML_PARSING": "false"
+  },
+  "functions": {
+    "run.py": {
+      "memory": 1024,
+      "runtime": "python3.9"
+    }
+  }
 }
