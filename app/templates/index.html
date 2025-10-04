@@ -41,7 +41,7 @@
         </div>
         
         <div class="form-card">
-            <form method="post" enctype="multipart/form-data">
+            <form id="scheduleForm" method="post" enctype="multipart/form-data">
                 <div class="form-section">
                     <div class="section-title">
                         <i class="fas fa-clock"></i>
@@ -210,6 +210,23 @@
                     
                     <div class="input-group-custom">
                         <label>
+                            <i class="fas fa-graduation-cap"></i>
+                            Course Name
+                            <button type="button" class="info-btn" onclick="toggleInfo('info-course-name', event)">
+                                <i class="fas fa-question-circle"></i>
+                            </button>
+                        </label>
+                        <div id="info-course-name" class="field-info">
+                            <strong>Purpose:</strong> Give a name to your course for easy identification.<br>
+                            <strong>How it's used:</strong> This name will appear in the title of all calendar events, making it easy to identify which course you're studying.
+                        </div>
+                        <input type="text" class="form-control" name="course_name" 
+                               placeholder="e.g., Python for Data Science" required>
+                        <span class="helper-text">Enter the name of your course</span>
+                    </div>
+                    
+                    <div class="input-group-custom">
+                        <label>
                             <i class="fas fa-file-import"></i>
                             Input Type
                             <button type="button" class="info-btn" onclick="toggleInfo('info-list-type', event)">
@@ -222,15 +239,17 @@
                             <ul>
                                 <li><strong>Udemy List:</strong> Paste text copied directly from the Udemy course page</li>
                                 <li><strong>Excel Spreadsheet:</strong> Upload a .xlsx file with your organized classes</li>
+                                <li><strong>HTML Course Content (AI-Powered):</strong> Upload HTML file for automatic extraction using AI</li>
                             </ul>
                         </div>
                         <select class="form-control" name="list_type" id="list_type" onchange="toggleInput()" required>
+                            <option value="html">HTML Course Content (AI-Powered)</option>
                             <option value="udemy">Udemy List</option>
                             <option value="spreadsheet">Excel Spreadsheet</option>
                         </select>
                     </div>
                     
-                    <div id="textInputBox" class="input-group-custom">
+                    <div id="textInputBox" class="input-group-custom" style="display:none;">
                         <label>
                             <i class="fas fa-align-left"></i>
                             Class Content
@@ -294,6 +313,45 @@ Not Started
                             <span class="sample-note">💡 You can import into Google Sheets and then export to .xlsx</span>
                         </div>
                     </div>
+                    
+                    <div id="htmlInputBox" class="input-group-custom">
+                        <label>
+                            <i class="fas fa-code"></i>
+                            HTML Course Content Upload (AI-Powered)
+                            <button type="button" class="info-btn" onclick="toggleInfo('info-html', event)">
+                                <i class="fas fa-question-circle"></i>
+                            </button>
+                        </label>
+                        <div id="info-html" class="field-info">
+                            <strong>Purpose:</strong> Upload HTML containing course content for AI-powered extraction.<br>
+                            <strong>How to use:</strong> 
+                            <ol>
+                                <li>Open your course page in a browser</li>
+                                <li>Right-click and select "View Page Source" or press Ctrl+U (Cmd+Option+U on Mac)</li>
+                                <li>Copy all the HTML content (Ctrl+A, then Ctrl+C)</li>
+                                <li>Paste into a text editor and save as .html file</li>
+                                <li>Upload the file here</li>
+                            </ol>
+                            <strong>⚠️ Important:</strong> This uses AI to automatically detect course structure. It works best with:
+                            <ul>
+                                <li>Udemy, Hotmart, Eduzz, Coursera, EdX platforms</li>
+                                <li>Pages with clear module/lesson structure</li>
+                                <li>Visible class durations in the HTML</li>
+                            </ul>
+                            <strong>🔑 API Key Required:</strong> You need to set <code>GOOGLE_API_KEY</code> in a .env file for this feature to work.
+                        </div>
+                        <div class="custom-file-upload">
+                            <i class="fas fa-robot"></i>
+                            <span class="file-label">Click or drag HTML file here</span>
+                            <span class="file-info">Accepted formats: .html, .htm</span>
+                            <input type="file" name="html_file" accept=".html,.htm">
+                        </div>
+                        <div class="sample-download-box ai-notice">
+                            <i class="fas fa-magic"></i>
+                            <span><strong>AI-Powered Feature:</strong> Our intelligent agent will automatically identify course modules, class names, and durations from the HTML.</span>
+                            <span class="sample-note">💡 This may take 10-30 seconds depending on the course size</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="divider"></div>
@@ -305,6 +363,143 @@ Not Started
             </form>
         </div>
     </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div id="loadingSpinner" class="loading-spinner">
+                <div class="spinner-brain">🧠</div>
+            </div>
+            <div id="loadingText" class="loading-text">
+                Analyzing course content<div class="loading-dots"><span></span><span></span><span></span></div>
+            </div>
+            <div id="loadingSubtext" class="loading-subtext">
+                Our AI is extracting all classes and durations from your course...
+            </div>
+        </div>
+    </div>
+    
+    <!-- Spreadsheet Download Modal -->
+    <div id="spreadsheetModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-icon">📊</div>
+                <h2 class="modal-title">Download Extracted Classes?</h2>
+                <p class="modal-description">
+                    We've extracted all classes from your course into a spreadsheet. 
+                    Would you like to download it or save it to Google Drive?
+                </p>
+            </div>
+            <div class="export-options">
+                <div class="export-option" onclick="ModalManager.downloadSpreadsheet();">
+                    <div class="export-option-icon">📥</div>
+                    <div class="export-option-content">
+                        <h4>Download Locally</h4>
+                        <p>Download the Excel file to your computer</p>
+                    </div>
+                </div>
+                <div class="export-option" onclick="ModalManager.uploadToDrive();">
+                    <div class="export-option-icon">📊</div>
+                    <div class="export-option-content">
+                        <h4>Create Google Sheets</h4>
+                        <p>Import as an editable Google Sheets spreadsheet in your Drive</p>
+                    </div>
+                </div>
+            </div>
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button class="btn-modal btn-modal-secondary" onclick="ModalManager.hide(); ModalManager.showExportModal();" style="flex: 1;">
+                        <i class="fas fa-times"></i>
+                        Skip
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Options Modal -->
+    <div id="exportModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-icon">📅</div>
+                <h2 class="modal-title">Export Your Schedule</h2>
+                <p class="modal-description">
+                    Choose how you want to export your study schedule:
+                </p>
+            </div>
+            <div class="export-options">
+                <div class="export-option" onclick="ModalManager.downloadCalendar();">
+                    <div class="export-option-icon">📥</div>
+                    <div class="export-option-content">
+                        <h4>Download iCal File</h4>
+                        <p>Download a .ics file to import into any calendar app (Google Calendar, Outlook, Apple Calendar, etc.)</p>
+                    </div>
+                </div>
+                <div class="export-option" onclick="ModalManager.importToGoogleCalendar();">
+                    <div class="export-option-icon">🔗</div>
+                    <div class="export-option-content">
+                        <h4>Import to Google Calendar</h4>
+                        <p>Directly import your schedule to Google Calendar (requires Google login)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn-modal btn-modal-secondary" onclick="ModalManager.goBack();" style="flex: 1;">
+                    <i class="fas fa-arrow-left"></i>
+                    Back
+                </button>
+                <button class="btn-modal btn-modal-secondary" onclick="ModalManager.hide();" style="flex: 1;">
+                    <i class="fas fa-times"></i>
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Calendar Selection Modal -->
+    <div id="calendarSelectionModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-icon">📅</div>
+                <h2 class="modal-title">Select a Calendar</h2>
+                <p class="modal-description">
+                    Choose which Google Calendar you want to import your study schedule to:
+                </p>
+            </div>
+            <div id="calendarList" class="export-options">
+                <!-- Calendars will be dynamically added here -->
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn-modal btn-modal-secondary" onclick="ModalManager.goBack();" style="flex: 1;">
+                    <i class="fas fa-arrow-left"></i>
+                    Back
+                </button>
+                <button class="btn-modal btn-modal-secondary" onclick="ModalManager.hide();" style="flex: 1;">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <p class="footer-made-with">
+                Built with <span class="heart">💜</span> and curiosity by <strong>Julia</strong> + <strong>Vibe Coding</strong>
+            </p>
+            <div class="footer-links">
+                <a href="https://www.linkedin.com/in/julianunesp/" target="_blank" rel="noopener noreferrer" class="footer-link">
+                    <i class="fab fa-linkedin"></i>
+                    LinkedIn
+                </a>
+                <span class="footer-separator">•</span>
+                <a href="https://github.com/julianunesp/study-scheduler-generator" target="_blank" rel="noopener noreferrer" class="footer-link">
+                    <i class="fab fa-github"></i>
+                    Source Code
+                </a>
+            </div>
+        </div>
+    </footer>
+    
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Successful</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dracula-background: #282a36;
+            --dracula-foreground: #f8f8f2;
+            --dracula-green: #50fa7b;
+            --dracula-purple: #bd93f9;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1d2e 0%, #282a36 50%, #1f2233 100%);
+            color: var(--dracula-foreground);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .success-container {
+            text-align: center;
+            max-width: 500px;
+            background: rgba(68, 71, 90, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+            animation: bounce 1s ease-in-out;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        h1 {
+            color: var(--dracula-green);
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        p {
+            color: var(--dracula-foreground);
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        .close-btn {
+            background: linear-gradient(135deg, var(--dracula-purple), #ff79c6);
+            border: none;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            padding: 16px 40px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .close-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(189, 147, 249, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-icon">✅</div>
+        <h1>Authentication Successful!</h1>
+        <p>You've successfully connected your Google account. You can now close this window and return to the application.</p>
+        <button class="close-btn" onclick="window.close();">
+            <i class="fas fa-check"></i>
+            Close Window
+        </button>
+    </div>
+    
+    <script>
+        // Auto-close after 3 seconds if opener exists
+        if (window.opener) {
+            setTimeout(() => {
+                window.opener.postMessage({ type: 'google_auth_success' }, '*');
+                window.close();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

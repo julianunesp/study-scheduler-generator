@@ -1,5 +1,6 @@
 """Service for scheduling classes and creating calendar events."""
 from datetime import datetime, timedelta
+import math
 import pytz
 from icalendar import Calendar, Event
 
@@ -30,6 +31,7 @@ def schedule_classes(classes, start_date, study_days, daily_study_limit_hours):
     
     Returns:
         dict: Dictionary mapping dates to lists of classes scheduled for that day
+        Each class entry is: [status, title, scheduled_duration, original_duration]
     """
     study_schedule = {}
     daily_study_limit_minutes = daily_study_limit_hours * 60
@@ -37,21 +39,25 @@ def schedule_classes(classes, start_date, study_days, daily_study_limit_hours):
     time_left = daily_study_limit_minutes
 
     for cls in classes:
-        while cls[2] > 0:
+        # Store original duration before modifying
+        original_duration = cls[2]
+        remaining_duration = original_duration
+        
+        while remaining_duration > 0:
             if current_date.weekday() in study_days:
-                if time_left >= cls[2]:
+                if time_left >= remaining_duration:
                     if current_date not in study_schedule:
                         study_schedule[current_date] = []
-                    study_schedule[current_date].append(cls)
-                    time_left -= cls[2]
-                    cls[2] = 0
+                    # Add class with scheduled duration and original duration
+                    study_schedule[current_date].append([cls[0], cls[1], remaining_duration, original_duration])
+                    time_left -= remaining_duration
+                    remaining_duration = 0
                 else:
                     if current_date not in study_schedule:
                         study_schedule[current_date] = []
-                    split_class = cls[:]
-                    split_class[2] = time_left
-                    study_schedule[current_date].append(split_class)
-                    cls[2] -= time_left
+                    # Split class - add portion that fits today, but keep original duration
+                    study_schedule[current_date].append([cls[0], cls[1], time_left, original_duration])
+                    remaining_duration -= time_left
                     time_left = 0
             if time_left == 0 or current_date.weekday() not in study_days:
                 current_date += timedelta(days=1)
@@ -60,7 +66,7 @@ def schedule_classes(classes, start_date, study_days, daily_study_limit_hours):
     return study_schedule
 
 
-def create_calendar_events(study_schedule, start_time_str, timezone, daily_study_limit_hours):
+def create_calendar_events(study_schedule, start_time_str, timezone, daily_study_limit_hours, course_name="Study"):
     """
     Create iCalendar events from study schedule.
     
@@ -69,6 +75,7 @@ def create_calendar_events(study_schedule, start_time_str, timezone, daily_study
         start_time_str (str): Start time in format 'HH:MM'
         timezone (str): Timezone name (e.g., 'America/Sao_Paulo')
         daily_study_limit_hours (int): Maximum hours per day
+        course_name (str): Name of the course to include in event title
     
     Returns:
         bytes: iCalendar data in bytes format
@@ -84,10 +91,31 @@ def create_calendar_events(study_schedule, start_time_str, timezone, daily_study
         end_datetime = start_datetime + timedelta(minutes=daily_study_limit_hours*60)
 
         event = Event()
-        event.add('summary', f"Study Block {day.strftime('%Y-%m-%d')}")
+        event.add('summary', f"📚 {course_name} - Study Block")
         event.add('dtstart', start_datetime)
         event.add('dtend', end_datetime)
-        event.add('description', "Classes today:\n" + '\n'.join(cls[1] for cls in classes))
+        
+        # Build description with formatted class list
+        description_lines = ["Classes for today:\n"]
+        for cls in classes:
+            class_name = cls[1]
+            # Use original duration (cls[3]) instead of scheduled duration (cls[2])
+            original_duration_minutes = cls[3]
+            
+            # Convert duration from minutes to HH:MM:SS format without rounding
+            total_seconds = original_duration_minutes * 60  # Convert minutes to seconds
+            hours = int(total_seconds // 3600)
+            minutes = int((total_seconds % 3600) // 60)
+            seconds = int(total_seconds % 60)
+            
+            # Format as HH:MM:SS
+            duration_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            
+            description_lines.append(f"⬜ {class_name} ({duration_str})")
+        
+        description_lines.append("\n✏️ Update ⬜ to ✅ as you complete each class!")
+        
+        event.add('description', '\n'.join(description_lines))
         cal.add_component(event)
 
     return cal.to_ical()

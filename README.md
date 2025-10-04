@@ -4,12 +4,14 @@ Web application to generate personalized study schedules from Udemy course lists
 
 ## 🚀 Features
 
-- ✅ Import courses via Udemy list or Excel spreadsheet
+- ✅ Import courses via Udemy list, Excel spreadsheet, or HTML file
+- 🤖 **AI-Powered HTML Parsing:** Automatic course extraction using LangChain + Google Gemini
+- 🌍 **Multilingual Support:** Handles content in English, Portuguese, and Spanish
 - ✅ Configure study days of the week
 - ✅ Set daily study hour limits
 - ✅ Time multiplier for duration adjustment
 - ✅ Generate .ics file compatible with Google Calendar, Outlook, Apple Calendar, etc.
-- ✅ Download sample spreadsheet
+- ✅ Download sample spreadsheet and HTML files
 
 ## 📋 Prerequisites
 
@@ -40,6 +42,16 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+4. (Optional) Configure AI-powered HTML parsing:
+```bash
+# Copy the example environment file
+cp env.example .env
+
+# Edit .env and add your Google Gemini API key
+# Get your API key from: https://makersuite.google.com/app/apikey
+GOOGLE_API_KEY=your_actual_api_key_here
+```
+
 ## 🏃 How to Run
 
 ### Local Development
@@ -50,8 +62,12 @@ python run.py
 
 The application will be available at: `http://localhost:5001`
 
-### Environment Variables (Optional)
+### Environment Variables
 
+**Required for AI HTML Parsing:**
+- `GOOGLE_API_KEY`: Google Gemini API key for AI-powered HTML parsing
+
+**Optional:**
 - `FLASK_CONFIG`: Flask configuration (`development`, `production`, `testing`)
 - `PORT`: Server port (default: 5001)
 - `SECRET_KEY`: Secret key for Flask sessions
@@ -62,6 +78,11 @@ The application will be available at: `http://localhost:5001`
 2. Choose the input type:
    - **Udemy List**: Paste the course list copied from Udemy
    - **Spreadsheet**: Upload an Excel spreadsheet (download the sample if needed)
+   - **HTML Course Content (AI-Powered)**: Upload HTML file with course structure
+     - Right-click on course page → "View Page Source"
+     - Save as .html file and upload
+     - AI agent automatically extracts modules, classes, and durations
+     - Works with Udemy, Hotmart, Eduzz, Coursera, EdX, and other platforms
 3. Configure the parameters:
    - Start date
    - Study days of the week
@@ -81,13 +102,14 @@ The application will be available at: `http://localhost:5001`
 │   ├── config.py             # Application settings
 │   ├── routes.py             # Routes and endpoints
 │   ├── services/             # Business logic
-│   │   ├── parser_service.py     # Data parsing
-│   │   └── scheduler_service.py  # Schedule generation
+│   │   ├── parser_service.py       # Data parsing
+│   │   ├── scheduler_service.py    # Schedule generation
+│   │   └── html_parser_agent.py    # AI-powered HTML parsing
 │   ├── static/               # Static files (CSS, JS)
-│   ├── templates/            # HTML templates
-│   └── utils/                # Utilities
+│   └── templates/            # HTML templates
 ├── data/                     # Data files/samples
-│   └── sample_spreadsheet.xlsx
+│   ├── sample_spreadsheet.xlsx
+│   └── sample_course.html    # Sample HTML for testing
 ├── deployment/               # Deployment configurations
 │   ├── Dockerfile
 │   └── kubernetes/
@@ -96,6 +118,47 @@ The application will be available at: `http://localhost:5001`
 └── vercel.json              # Vercel configuration
 
 ```
+
+## 🤖 AI-Powered HTML Parsing
+
+The application includes an intelligent agent built with **LangChain** and **Google Gemini** that can automatically extract course content from HTML files.
+
+### How It Works
+
+1. **Upload HTML**: User uploads the HTML source of a course page
+2. **AI Analysis**: The LangChain agent analyzes the HTML structure
+3. **Pattern Detection**: Identifies modules, classes, and durations automatically
+4. **Structured Output**: Returns parsed data using Pydantic models
+5. **Integration**: Seamlessly feeds into the existing scheduling pipeline
+
+### Supported Platforms
+
+The AI agent is designed to work with various course platforms:
+- ✅ **Full Cycle / React Apps** (MUI-based platforms)
+- ✅ **Udemy** (standard course structure)
+- ✅ **Hotmart** (Brazilian platform)
+- ✅ **Eduzz** (Brazilian platform)
+- ✅ **Coursera** (MOOC platform)
+- ✅ **EdX** (MOOC platform)
+- ✅ **Custom platforms** with similar HTML structures
+
+### Technical Details
+
+- **Framework**: LangChain with Google Gemini (gemini-2.0-flash-exp)
+- **Output Parsing**: Pydantic models for structured data
+- **Prompt Engineering**: English-optimized system prompt covering multiple platform patterns
+- **Multilingual Support**: Automatically handles content in English, Portuguese, and Spanish
+- **Error Handling**: Graceful fallback if content cannot be extracted
+
+### Example Prompt Structure
+
+The agent uses a detailed English prompt that:
+- Identifies common HTML patterns for course content
+- Handles multiple duration formats (MM:SS, HH:MM:SS, HHH:MM)
+- Extracts module/chapter organization
+- Maintains original class ordering
+- Never invents or omits classes
+- Preserves original language of course content (EN/PT/ES)
 
 ## 🐳 Deployment
 
@@ -123,8 +186,10 @@ kubectl apply -f deployment/kubernetes/
 ## 🛠️ Technologies
 
 - **Backend**: Flask 3.x
-- **Parsing**: openpyxl (Excel)
+- **AI/ML**: LangChain, Google Gemini (gemini-2.0-flash-exp)
+- **Parsing**: openpyxl (Excel), BeautifulSoup (HTML cleaning)
 - **Calendar**: icalendar, pytz
+- **Data Validation**: Pydantic
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
 
 ## 📝 Spreadsheet Format
