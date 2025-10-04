@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Schedule Generator</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <div class="header-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <h1>Study Schedule Generator</h1>
+            <p>Transform your classes into an organized calendar automatically</p>
+        </div>
+        
+        <div class="app-description">
+            <div class="description-card">
+                <div class="description-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="description-content">
+                    <h3>What does this application do?</h3>
+                    <p>This tool transforms your class list (from Udemy or an Excel spreadsheet) into a <strong>calendar file (.ics)</strong> that you can import into Google Calendar, Outlook, or any other calendar application.</p>
+                    <p>You define when you want to study, how many hours per day, and the application automatically distributes all your classes across available days, respecting your time limits.</p>
+                    <div class="what-you-get">
+                        <strong>📅 What you get:</strong>
+                        <ul>
+                            <li>A <code>study_schedule.ics</code> file ready to import</li>
+                            <li>All classes organized by date and time</li>
+                            <li>Study blocks that respect your availability</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-card">
+            <form method="post" enctype="multipart/form-data">
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-clock"></i>
+                        Time Settings
+                    </div>
+                    
+                    <div class="row-cols">
+                        <div class="input-group-custom">
+                            <label>
+                                <i class="far fa-calendar"></i>
+                                Start Date
+                                <button type="button" class="info-btn" onclick="toggleInfo('info-start-date', event)">
+                                    <i class="fas fa-question-circle"></i>
+                                </button>
+                            </label>
+                            <div id="info-start-date" class="field-info">
+                                <strong>Purpose:</strong> Defines the first day you will start studying.<br>
+                                <strong>How it's used:</strong> The application will distribute your classes starting from this date, considering only the weekdays you selected.
+                            </div>
+                            <input type="date" class="form-control" name="start_date" required>
+                            <span class="helper-text">When you want to start studying</span>
+                        </div>
+                        
+                        <div class="input-group-custom">
+                            <label>
+                                <i class="far fa-clock"></i>
+                                Start Time
+                                <button type="button" class="info-btn" onclick="toggleInfo('info-start-time', event)">
+                                    <i class="fas fa-question-circle"></i>
+                                </button>
+                            </label>
+                            <div id="info-start-time" class="field-info">
+                                <strong>Purpose:</strong> Defines what time of day you will start studying.<br>
+                                <strong>How it's used:</strong> All study blocks in the calendar will start at this time. For example, if you choose 14:00, your classes will start at 2 PM every day.
+                            </div>
+                            <input type="time" class="form-control" name="start_time" required>
+                            <span class="helper-text">What time you prefer to study</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-sliders-h"></i>
+                        Study Settings
+                    </div>
+                    
+                    <div class="input-group-custom">
+                        <label>
+                            <i class="fas fa-calendar-week"></i>
+                            Study Days
+                            <button type="button" class="info-btn" onclick="toggleInfo('info-study-days', event)">
+                                <i class="fas fa-question-circle"></i>
+                            </button>
+                        </label>
+                        <div id="info-study-days" class="field-info">
+                            <strong>Purpose:</strong> Choose which days of the week you are available to study.<br>
+                            <strong>How it's used:</strong> The application will only schedule classes on the selected days. For example, if you only check Monday to Friday, there will be no classes on weekends.
+                        </div>
+                        <div class="days-checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="study_days" value="0" checked>
+                                <span class="checkbox-label">
+                                    <i class="fas fa-check"></i>
+                                    Monday
+                                </span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="study_days" value="1" checked>
+                                <span class="checkbox-label">
+                                    <i class="fas fa-check"></i>
+                                    Tuesday
+                                </span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="study_days" value="2" checked>
+                                <span class="checkbox-label">
+                                    <i class="fas fa-check"></i>
+                                    Wednesday
+                                </span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="study_days" value="3" checked>
+                                <span class="checkbox-label">
+                                    <i class="fas fa-check"></i>
+                                    Thursday
+                                </span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="study_days" value="4" checked>
+                                <span class="checkbox-label">
+                                    <i class="fas fa-check"></i>
+                                    Friday
+                                </span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="study_days" value="5">
+                                <span class="checkbox-label">
+                                    <i class="fas fa-check"></i>
+                                    Saturday
+                                </span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="study_days" value="6">
+                                <span class="checkbox-label">
+                                    <i class="fas fa-check"></i>
+                                    Sunday
+                                </span>
+                            </label>
+                        </div>
+                        <span class="helper-text">Select the days you can study</span>
+                    </div>
+                    
+                    <div class="row-cols">
+                        <div class="input-group-custom">
+                            <label>
+                                <i class="fas fa-hourglass-half"></i>
+                                Daily Study Hours
+                                <button type="button" class="info-btn" onclick="toggleInfo('info-daily-hours', event)">
+                                    <i class="fas fa-question-circle"></i>
+                                </button>
+                            </label>
+                            <div id="info-daily-hours" class="field-info">
+                                <strong>Purpose:</strong> Defines how many hours you want to study per day.<br>
+                                <strong>How it's used:</strong> The application will not schedule more than this limit of hours in a single day. If you set 2 hours, each day will have a maximum of 2 hours of scheduled classes.
+                            </div>
+                            <input type="number" class="form-control" name="daily_study_limit_hours" 
+                                   placeholder="e.g., 2" min="1" max="24" required>
+                            <span class="helper-text">Maximum hours you want to study per day</span>
+                        </div>
+                        
+                        <div class="input-group-custom">
+                            <label>
+                                <i class="fas fa-percentage"></i>
+                                Time Multiplier
+                                <button type="button" class="info-btn" onclick="toggleInfo('info-multiplier', event)">
+                                    <i class="fas fa-question-circle"></i>
+                                </button>
+                            </label>
+                            <div id="info-multiplier" class="field-info">
+                                <strong>Purpose:</strong> Adjusts class duration to give more or less time.<br>
+                                <strong>How it's used:</strong> 
+                                <ul>
+                                    <li><strong>1.0</strong> = normal time (a 30min class stays 30min)</li>
+                                    <li><strong>1.5</strong> = 50% more time (30min becomes 45min)</li>
+                                    <li><strong>0.8</strong> = 20% less time (30min becomes 24min)</li>
+                                </ul>
+                                Useful if you watch at different speeds or need time for breaks/notes.
+                            </div>
+                            <input type="number" step="0.01" class="form-control" name="multiplier" 
+                                   placeholder="e.g., 1.0" min="0.1" max="5.0" required>
+                            <span class="helper-text">1.0 = normal time, 1.5 = 50% more time</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-list"></i>
+                        Course Content
+                    </div>
+                    
+                    <div class="input-group-custom">
+                        <label>
+                            <i class="fas fa-file-import"></i>
+                            Input Type
+                            <button type="button" class="info-btn" onclick="toggleInfo('info-list-type', event)">
+                                <i class="fas fa-question-circle"></i>
+                            </button>
+                        </label>
+                        <div id="info-list-type" class="field-info">
+                            <strong>Purpose:</strong> Choose where your classes come from.<br>
+                            <strong>Options:</strong>
+                            <ul>
+                                <li><strong>Udemy List:</strong> Paste text copied directly from the Udemy course page</li>
+                                <li><strong>Excel Spreadsheet:</strong> Upload a .xlsx file with your organized classes</li>
+                            </ul>
+                        </div>
+                        <select class="form-control" name="list_type" id="list_type" onchange="toggleInput()" required>
+                            <option value="udemy">Udemy List</option>
+                            <option value="spreadsheet">Excel Spreadsheet</option>
+                        </select>
+                    </div>
+                    
+                    <div id="textInputBox" class="input-group-custom">
+                        <label>
+                            <i class="fas fa-align-left"></i>
+                            Class Content
+                            <button type="button" class="info-btn" onclick="toggleInfo('info-class-input', event)">
+                                <i class="fas fa-question-circle"></i>
+                            </button>
+                        </label>
+                        <div id="info-class-input" class="field-info">
+                            <strong>Purpose:</strong> Field to paste the class list copied from Udemy.<br>
+                            <strong>How to use:</strong> 
+                            <ol>
+                                <li>Open your course on Udemy</li>
+                                <li>Select and copy the class list (with titles and durations)</li>
+                                <li>Paste here in the field</li>
+                            </ol>
+                            The application will automatically extract class names and durations.
+                        </div>
+                        <textarea class="form-control" name="class_input" rows="10" 
+                                  placeholder="Example format:
+Not Started
+1. Introduction to Python
+15min
+
+Not Started  
+2. Variables and Data Types
+22min
+
+Not Started
+3. Control Flow
+18min"></textarea>
+                        <span class="helper-text">Paste content directly from Udemy (status, title, duration)</span>
+                    </div>
+                    
+                    <div id="fileInputBox" class="input-group-custom" style="display:none;">
+                        <label>
+                            <i class="fas fa-file-excel"></i>
+                            Spreadsheet Upload
+                            <button type="button" class="info-btn" onclick="toggleInfo('info-spreadsheet', event)">
+                                <i class="fas fa-question-circle"></i>
+                            </button>
+                        </label>
+                        <div id="info-spreadsheet" class="field-info">
+                            <strong>Purpose:</strong> Allows you to upload an Excel spreadsheet with your classes.<br>
+                            <strong>How to use:</strong> 
+                            <ul>
+                                <li>Download the sample template by clicking the link below</li>
+                                <li>Fill it with your classes (name, duration, etc.)</li>
+                                <li>Save as .xlsx and upload here</li>
+                            </ul>
+                            <strong>Expected format:</strong> Columns with Day, Title, Duration, and Completion status.
+                        </div>
+                        <div class="custom-file-upload">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span class="file-label">Click or drag the file here</span>
+                            <span class="file-info">Accepted formats: .xlsx</span>
+                            <input type="file" name="spreadsheet" accept=".xlsx">
+                        </div>
+                        <div class="sample-download-box">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Don't have a spreadsheet? <a href="/download-sample" class="sample-link" download>Download a sample here</a></span>
+                            <span class="sample-note">💡 You can import into Google Sheets and then export to .xlsx</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <button type="submit" class="btn-generate">
+                    <i class="fas fa-magic"></i>
+                    Generate Schedule
+                </button>
+            </form>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
+

@@ -1,4 +1,4 @@
-Flask
-icalendar
-pytz
-openpyxl
+Flask>=3.0.0
+icalendar>=5.0.0
+pytz>=2023.3
+openpyxl>=3.1.0
