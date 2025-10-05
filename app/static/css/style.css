@@ -822,40 +822,48 @@ select option {
     transform: translateY(-2px);
 }
 
-.export-options {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+/* Calendar list scrollable container */
+.calendar-list-container {
     margin-top: 20px;
-    max-height: 400px;
+    background: rgba(40, 42, 54, 0.3);
+    border: 2px solid rgba(189, 147, 249, 0.2);
+    border-radius: 12px;
+    padding: 15px;
+    max-height: 450px;
     overflow-y: auto;
-    padding-right: 5px;
 }
 
-/* Custom scrollbar for calendar list */
-.export-options::-webkit-scrollbar {
-    width: 8px;
+/* Custom scrollbar for calendar list container */
+.calendar-list-container::-webkit-scrollbar {
+    width: 10px;
 }
 
-.export-options::-webkit-scrollbar-track {
+.calendar-list-container::-webkit-scrollbar-track {
     background: rgba(40, 42, 54, 0.5);
-    border-radius: 4px;
+    border-radius: 5px;
+    margin: 5px;
 }
 
-.export-options::-webkit-scrollbar-thumb {
+.calendar-list-container::-webkit-scrollbar-thumb {
     background: rgba(189, 147, 249, 0.6);
-    border-radius: 4px;
+    border-radius: 5px;
     transition: background 0.3s ease;
 }
 
-.export-options::-webkit-scrollbar-thumb:hover {
+.calendar-list-container::-webkit-scrollbar-thumb:hover {
     background: rgba(189, 147, 249, 0.8);
 }
 
 /* Firefox scrollbar */
-.export-options {
+.calendar-list-container {
     scrollbar-width: thin;
     scrollbar-color: rgba(189, 147, 249, 0.6) rgba(40, 42, 54, 0.5);
+}
+
+.export-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 .export-option {
