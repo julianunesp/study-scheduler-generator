@@ -3,7 +3,7 @@ import os
 import io
 import base64
 from datetime import datetime
-from flask import Blueprint, request, send_file, render_template, jsonify
+from flask import Blueprint, request, send_file, render_template, jsonify, session
 from werkzeug.utils import secure_filename
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -265,13 +265,14 @@ def generate_schedule():
 def google_auth():
     """Initiate Google OAuth flow."""
     try:
-        google_service = get_google_service()
+        google_service = get_google_service(session)
         
         # Generate state for security
         import secrets
         state = secrets.token_urlsafe(32)
         
-        # Store state in session (you might want to use Flask session here)
+        # Store state in session for verification
+        session['oauth_state'] = state
         authorization_url, _ = google_service.get_authorization_url(state)
         
         return jsonify({
@@ -287,7 +288,7 @@ def google_auth():
 def oauth2callback():
     """Handle OAuth callback from Google."""
     try:
-        google_service = get_google_service()
+        google_service = get_google_service(session)
         
         # Get the full callback URL
         authorization_response = request.url
@@ -305,7 +306,7 @@ def oauth2callback():
 def list_google_calendars():
     """List user's Google Calendars."""
     try:
-        google_service = get_google_service()
+        google_service = get_google_service(session)
         
         # Try to load existing credentials
         if not google_service.load_credentials():
@@ -346,7 +347,7 @@ def import_to_google_calendar():
         # Decode base64 data
         ical_data = base64.b64decode(ical_data_b64)
         
-        google_service = get_google_service()
+        google_service = get_google_service(session)
         
         # Try to load existing credentials
         if not google_service.load_credentials():
@@ -382,7 +383,7 @@ def upload_to_google_drive():
         # Decode base64 data
         spreadsheet_data = base64.b64decode(spreadsheet_data_b64)
         
-        google_service = get_google_service()
+        google_service = get_google_service(session)
         
         # Try to load existing credentials
         if not google_service.load_credentials():

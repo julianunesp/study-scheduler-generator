@@ -164,11 +164,45 @@ The agent uses a detailed English prompt that:
 
 ### Vercel
 
-The project is configured for Vercel deployment:
+The project is configured for Vercel deployment with serverless-compatible OAuth:
 
 ```bash
 vercel deploy
 ```
+
+**Important Environment Variables for Vercel:**
+
+1. **SECRET_KEY** (Required for OAuth sessions):
+   ```bash
+   # Generate a secure secret key
+   python -c "import secrets; print(secrets.token_hex(32))"
+   
+   # Add to Vercel environment variables
+   vercel env add SECRET_KEY
+   ```
+
+2. **GOOGLE_CLIENT_ID** (For Google Calendar/Drive integration):
+   ```bash
+   vercel env add GOOGLE_CLIENT_ID
+   ```
+
+3. **GOOGLE_CLIENT_SECRET** (For Google Calendar/Drive integration):
+   ```bash
+   vercel env add GOOGLE_CLIENT_SECRET
+   ```
+
+4. **GOOGLE_REDIRECT_URI** (OAuth callback URL):
+   ```bash
+   # Set to: https://your-domain.vercel.app/oauth2callback
+   vercel env add GOOGLE_REDIRECT_URI
+   ```
+
+5. **GOOGLE_API_KEY** (For AI HTML parsing):
+   ```bash
+   vercel env add GOOGLE_API_KEY
+   ```
+
+**Note:** The application now uses cookie-based sessions instead of file-based storage, making it fully compatible with Vercel's read-only filesystem
 
 ### Docker
 

@@ -1,6 +1,6 @@
 """Google API integration service for Calendar and Drive."""
 import os
-import pickle
+import json
 from datetime import datetime
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -30,10 +30,14 @@ OAUTH_CONFIG = {
 class GoogleAPIService:
     """Service for interacting with Google Calendar and Drive APIs."""
     
-    def __init__(self):
-        """Initialize the Google API service."""
+    def __init__(self, session=None):
+        """Initialize the Google API service.
+        
+        Args:
+            session: Flask session object for storing credentials (serverless-compatible)
+        """
         self.credentials = None
-        self.token_file = 'token.pickle'
+        self.session = session
     
     def get_authorization_url(self, state=None):
         """
@@ -81,31 +85,52 @@ class GoogleAPIService:
         flow.fetch_token(authorization_response=authorization_response)
         self.credentials = flow.credentials
         
-        # Save credentials for future use
-        with open(self.token_file, 'wb') as token:
-            pickle.dump(self.credentials, token)
+        # Save credentials to session (serverless-compatible)
+        if self.session is not None:
+            self.session['google_credentials'] = {
+                'token': self.credentials.token,
+                'refresh_token': self.credentials.refresh_token,
+                'token_uri': self.credentials.token_uri,
+                'client_id': self.credentials.client_id,
+                'client_secret': self.credentials.client_secret,
+                'scopes': self.credentials.scopes
+            }
         
         return self.credentials
     
     def load_credentials(self):
         """
-        Load saved credentials from file.
+        Load saved credentials from session (serverless-compatible).
         
         Returns:
             bool: True if credentials loaded successfully
         """
-        if os.path.exists(self.token_file):
-            with open(self.token_file, 'rb') as token:
-                self.credentials = pickle.load(token)
-            
-            # Refresh if expired
-            if self.credentials and self.credentials.expired and self.credentials.refresh_token:
+        if self.session is None or 'google_credentials' not in self.session:
+            return False
+        
+        creds_data = self.session['google_credentials']
+        
+        # Reconstruct credentials from session data
+        self.credentials = Credentials(
+            token=creds_data.get('token'),
+            refresh_token=creds_data.get('refresh_token'),
+            token_uri=creds_data.get('token_uri'),
+            client_id=creds_data.get('client_id'),
+            client_secret=creds_data.get('client_secret'),
+            scopes=creds_data.get('scopes')
+        )
+        
+        # Refresh if expired
+        if self.credentials.expired and self.credentials.refresh_token:
+            try:
                 self.credentials.refresh(Request())
-                with open(self.token_file, 'wb') as token:
-                    pickle.dump(self.credentials, token)
-            
-            return True
-        return False
+                # Update session with refreshed token
+                self.session['google_credentials']['token'] = self.credentials.token
+            except Exception as e:
+                # If refresh fails, credentials are invalid
+                return False
+        
+        return True
     
     def import_excel_to_sheets(self, excel_data, filename):
         """
@@ -234,13 +259,14 @@ class GoogleAPIService:
         return calendars
 
 
-# Singleton instance
-_google_service = None
-
-
-def get_google_service():
-    """Get or create the Google API service singleton."""
-    global _google_service
-    if _google_service is None:
-        _google_service = GoogleAPIService()
-    return _google_service
+def get_google_service(session=None):
+    """
+    Get a Google API service instance.
+    
+    Args:
+        session: Flask session object for storing credentials
+        
+    Returns:
+        GoogleAPIService: Service instance with session support
+    """
+    return GoogleAPIService(session=session)
