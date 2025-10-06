@@ -34,7 +34,7 @@ class HTMLCourseParser:
         
         # Use REST transport to avoid gRPC issues in serverless environments
         self.model = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",  # Using latest model
+            model="gemini-2.5-flash-lite",  # Using latest model
             temperature=0.0,  # Low temperature for consistency
             google_api_key=api_key,
             transport="rest"  # Force REST API instead of gRPC for Vercel compatibility
@@ -151,13 +151,96 @@ Analyze the provided HTML and extract all INDIVIDUAL classes with their INDIVIDU
             return CourseContent(classes=[])
     
     def _clean_html(self, html_content: str) -> str:
-        """Clean HTML by removing scripts, styles, and limiting size."""
-        # Remove scripts, styles, and comments
-        html_content = re.sub(r'<script[^>]*>.*?</script>|<style[^>]*>.*?</style>|<!--.*?-->', 
-                             '', html_content, flags=re.DOTALL | re.IGNORECASE)
+        """
+        Advanced HTML cleaning to improve performance while preserving structure.
         
-        # Limit size to avoid token limits
-        return html_content[:100000] if len(html_content) > 100000 else html_content
+        This method removes non-essential content (scripts, styles, metadata) while
+        keeping the structural elements needed for course content extraction.
+        """
+        # 1. Remove scripts (including inline scripts and external refs)
+        html_content = re.sub(
+            r'<script[^>]*>.*?</script>',
+            '',
+            html_content,
+            flags=re.DOTALL | re.IGNORECASE
+        )
+        
+        # 2. Remove all style tags and their contents (CSS is not needed)
+        html_content = re.sub(
+            r'<style[^>]*>.*?</style>',
+            '',
+            html_content,
+            flags=re.DOTALL | re.IGNORECASE
+        )
+        
+        # 3. Remove HTML comments
+        html_content = re.sub(
+            r'<!--.*?-->',
+            '',
+            html_content,
+            flags=re.DOTALL
+        )
+        
+        # 4. Remove inline style attributes (keeping class and id for structure)
+        html_content = re.sub(
+            r'\s+style\s*=\s*"[^"]*"',
+            '',
+            html_content,
+            flags=re.IGNORECASE
+        )
+        
+        # 5. Remove common metadata and non-content attributes
+        # Remove data-* attributes (except data-duration which might contain time info)
+        html_content = re.sub(
+            r'\s+data-(?!duration)[a-zA-Z0-9\-]+\s*=\s*"[^"]*"',
+            '',
+            html_content
+        )
+        
+        # 6. Remove SVG and image data URIs (they are huge and not needed)
+        html_content = re.sub(
+            r'<svg[^>]*>.*?</svg>',
+            '',
+            html_content,
+            flags=re.DOTALL | re.IGNORECASE
+        )
+        html_content = re.sub(
+            r'(src|href|background|background-image)\s*=\s*"data:image/[^"]*"',
+            '',
+            html_content,
+            flags=re.IGNORECASE
+        )
+        
+        # 7. Remove meta tags and link tags (not needed for content extraction)
+        html_content = re.sub(
+            r'<(meta|link)[^>]*>',
+            '',
+            html_content,
+            flags=re.IGNORECASE
+        )
+        
+        # 8. Remove empty or whitespace-only tags (except structural ones)
+        # Do this BEFORE collapsing whitespace to avoid breaking content
+        # Run multiple times to handle nested empty tags
+        for _ in range(3):
+            html_content = re.sub(
+                r'<(span|div|i|b|strong|em)[^>]*>\s*</\1>',
+                '',
+                html_content,
+                flags=re.IGNORECASE
+            )
+        
+        # 9. Collapse multiple whitespaces WITHIN tags (preserving structure)
+        # Replace multiple spaces/newlines/tabs with single space
+        html_content = re.sub(r'[ \t]+', ' ', html_content)
+        html_content = re.sub(r'\n+', '\n', html_content)
+        
+        # 10. Final size limit to avoid token limits
+        # Keep first 150k chars (increased from 100k since we cleaned a lot)
+        if len(html_content) > 150000:
+            html_content = html_content[:150000]
+        
+        return html_content.strip()
     
     def _parse_duration_to_minutes(self, duration_str: str) -> float:
         """Convert duration string (HH:MM:SS, MM:SS, or MM) to minutes as float."""
