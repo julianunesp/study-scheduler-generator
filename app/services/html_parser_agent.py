@@ -34,7 +34,7 @@ class HTMLCourseParser:
         
         # Use REST transport to avoid gRPC issues in serverless environments
         self.model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash-lite",  # Using latest model
+            model="gemini-3-flash-preview",  # Using latest model
             temperature=0.0,  # Low temperature for consistency
             google_api_key=api_key,
             transport="rest"  # Force REST API instead of gRPC for Vercel compatibility
