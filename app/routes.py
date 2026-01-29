@@ -17,6 +17,7 @@ from .services import (
     get_html_parser,
     get_google_service
 )
+from .services.parser_service import analyze_spreadsheet_sheets
 from .config import ALLOWED_EXTENSIONS, MAX_FILE_SIZES
 
 main_bp = Blueprint('main', __name__)
@@ -144,7 +145,7 @@ def index():
 @main_bp.route('/download-sample')
 def download_sample():
     """Serve the sample spreadsheet for download."""
-    sample_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'sample_spreadsheet.xlsx')
+    sample_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'new_sample_spreadsheet.xlsx')
     if os.path.exists(sample_path):
         return send_file(
             sample_path,
@@ -154,6 +155,39 @@ def download_sample():
         )
     else:
         return 'Sample file not found', 404
+
+
+@main_bp.route('/analyze-spreadsheet', methods=['POST'])
+def analyze_spreadsheet():
+    """
+    Analyze uploaded spreadsheet and return sheet metadata.
+
+    Accepts: multipart/form-data with 'spreadsheet' file
+    Returns: JSON with sheet information
+    """
+    try:
+        file = request.files.get('spreadsheet')
+        if not file:
+            return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+
+        is_valid, error_msg = validate_file_upload(file, ['xlsx', 'xls'])
+        if not is_valid:
+            return jsonify({'success': False, 'error': error_msg}), 400
+
+        # Analyze spreadsheet
+        analysis = analyze_spreadsheet_sheets(file)
+
+        return jsonify({
+            'success': True,
+            'format': analysis['format'],
+            'sheets': analysis['sheets']
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to analyze spreadsheet: {str(e)}'
+        }), 500
 
 
 @main_bp.route('/generate', methods=['POST'])
@@ -217,13 +251,20 @@ def generate_schedule():
             if 'spreadsheet' not in request.files:
                 return jsonify({'success': False, 'error': 'No file uploaded'}), 400
             file = request.files['spreadsheet']
-            
+
             # Validate spreadsheet file
             is_valid, error_msg = validate_file_upload(file, ['xlsx', 'xls'])
             if not is_valid:
                 return jsonify({'success': False, 'error': error_msg}), 400
-            
-            classes = parse_spreadsheet(file)
+
+            # Extract selected sheets from form (optional)
+            selected_sheets = request.form.getlist('selected_sheets[]')
+
+            # Parse spreadsheet with sheet selection
+            if selected_sheets:
+                classes = parse_spreadsheet(file, selected_sheets=selected_sheets)
+            else:
+                classes = parse_spreadsheet(file)
 
         # Apply time multiplier
         adjusted_classes = apply_multiplier(classes, multiplier)

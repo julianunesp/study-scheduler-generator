@@ -313,7 +313,47 @@ Not Started
                             <span class="sample-note">💡 You can import into Google Sheets and then export to .xlsx</span>
                         </div>
                     </div>
-                    
+
+                    <!-- Sheet Selection Section (only for new format spreadsheets) -->
+                    <div id="sheetSelectionBox" class="input-group-custom" style="display: none;">
+                        <label>
+                            <i class="fas fa-layer-group"></i> Select Course Modules
+                            <button type="button" class="info-btn" onclick="toggleInfo('sheet-info', event)">
+                                <i class="fas fa-question-circle"></i>
+                            </button>
+                        </label>
+
+                        <div id="sheet-info" class="field-info">
+                            <p>Select which course modules (sheets) you want to include in your study schedule. You can select multiple modules at once.</p>
+                        </div>
+
+                        <!-- Loading state -->
+                        <div id="sheet-analysis-loading" style="display: none;">
+                            <div class="sheet-loading">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <span>Analyzing spreadsheet...</span>
+                            </div>
+                        </div>
+
+                        <!-- Error state -->
+                        <div id="sheet-analysis-error" class="sheet-error" style="display: none;"></div>
+
+                        <!-- Sheet checkboxes container -->
+                        <div id="sheet-checkboxes" class="sheet-selection-container">
+                            <!-- Dynamically populated with checkboxes -->
+                        </div>
+
+                        <!-- Select All / None buttons -->
+                        <div class="sheet-actions">
+                            <button type="button" class="btn-secondary" onclick="selectAllSheets()">
+                                <i class="fas fa-check-double"></i> Select All
+                            </button>
+                            <button type="button" class="btn-secondary" onclick="clearAllSheets()">
+                                <i class="fas fa-times"></i> Clear All
+                            </button>
+                        </div>
+                    </div>
+
                     <div id="htmlInputBox" class="input-group-custom">
                         <label>
                             <i class="fas fa-code"></i>

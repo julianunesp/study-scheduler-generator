@@ -3,14 +3,18 @@ function toggleInput() {
     var textBox = document.getElementById("textInputBox");
     var fileBox = document.getElementById("fileInputBox");
     var htmlBox = document.getElementById("htmlInputBox");
-    
+    var sheetSelectionBox = document.getElementById("sheetSelectionBox");
+
     // Hide all boxes first
     textBox.style.display = "none";
     fileBox.style.display = "none";
     if (htmlBox) {
         htmlBox.style.display = "none";
     }
-    
+    if (sheetSelectionBox) {
+        sheetSelectionBox.style.display = "none";
+    }
+
     // Show the appropriate box
     if (listType === "udemy") {
         textBox.style.display = "block";
@@ -23,6 +27,7 @@ function toggleInput() {
     } else {
         fileBox.style.display = "block";
         fileBox.classList.add("fade-in-section");
+        // Note: sheetSelectionBox will be shown/hidden by analyzeSpreadsheet()
     }
 }
 
@@ -420,10 +425,23 @@ const ModalManager = {
 // Form submission handler
 function handleFormSubmit(event) {
     event.preventDefault();
-    
+
     const form = event.target;
     const formData = new FormData(form);
-    
+    const listType = formData.get('list_type');
+
+    // Validate sheet selection for new format spreadsheets
+    if (listType === 'spreadsheet') {
+        const sheetSelectionBox = document.getElementById('sheetSelectionBox');
+        const selectedSheets = formData.getAll('selected_sheets[]');
+
+        // If sheet selection is visible and no sheets selected, show error
+        if (sheetSelectionBox && sheetSelectionBox.style.display !== 'none' && selectedSheets.length === 0) {
+            alert('Please select at least one course module to schedule.');
+            return;
+        }
+    }
+
     // Show thinking animation
     LoadingManager.show('thinking');
     
@@ -457,6 +475,121 @@ function handleFormSubmit(event) {
     });
 }
 
+// Spreadsheet Analysis Functions
+async function analyzeSpreadsheet(file) {
+    const sheetSelectionBox = document.getElementById('sheetSelectionBox');
+    const loadingDiv = document.getElementById('sheet-analysis-loading');
+    const errorDiv = document.getElementById('sheet-analysis-error');
+    const checkboxesDiv = document.getElementById('sheet-checkboxes');
+
+    // Reset UI
+    checkboxesDiv.innerHTML = '';
+    errorDiv.style.display = 'none';
+    loadingDiv.style.display = 'block';
+    sheetSelectionBox.style.display = 'none';
+
+    try {
+        // Create form data
+        const formData = new FormData();
+        formData.append('spreadsheet', file);
+
+        // Send to backend
+        const response = await fetch('/analyze-spreadsheet', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Analysis failed');
+        }
+
+        // Hide loading
+        loadingDiv.style.display = 'none';
+
+        // If old format (single sheet), hide selection
+        if (data.format === 'old') {
+            sheetSelectionBox.style.display = 'none';
+            return;
+        }
+
+        // Show sheet selection for new format
+        sheetSelectionBox.style.display = 'block';
+        sheetSelectionBox.classList.add('fade-in-section');
+
+        // Populate checkboxes
+        renderSheetCheckboxes(data.sheets);
+
+    } catch (error) {
+        console.error('Error analyzing spreadsheet:', error);
+        loadingDiv.style.display = 'none';
+        errorDiv.textContent = `Error: ${error.message}`;
+        errorDiv.style.display = 'block';
+    }
+}
+
+function renderSheetCheckboxes(sheets) {
+    const container = document.getElementById('sheet-checkboxes');
+    container.innerHTML = '';
+
+    sheets.forEach((sheet, index) => {
+        const item = document.createElement('div');
+        item.className = 'sheet-checkbox-item';
+
+        // Determine completion badge class
+        const completionClass =
+            sheet.completion_percentage >= 70 ? 'completion-high' :
+            sheet.completion_percentage >= 30 ? 'completion-medium' :
+            'completion-low';
+
+        // Format duration as HH:MM
+        const hours = Math.floor(sheet.total_duration_minutes / 60);
+        const minutes = sheet.total_duration_minutes % 60;
+        const durationStr = `${hours}h ${minutes}min`;
+
+        item.innerHTML = `
+            <input
+                type="checkbox"
+                name="selected_sheets[]"
+                value="${sheet.name}"
+                id="sheet-${index}"
+                checked
+            >
+            <div class="sheet-info">
+                <label for="sheet-${index}" class="sheet-name">
+                    ${sheet.name}
+                </label>
+                <div class="sheet-stats">
+                    <span class="sheet-stat">
+                        <i class="fas fa-list"></i>
+                        ${sheet.pending_classes} pending classes
+                    </span>
+                    <span class="sheet-stat">
+                        <i class="fas fa-clock"></i>
+                        ${durationStr}
+                    </span>
+                    <span class="completion-badge ${completionClass}">
+                        ${sheet.completion_percentage.toFixed(0)}% complete
+                    </span>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(item);
+    });
+}
+
+function selectAllSheets() {
+    const checkboxes = document.querySelectorAll('#sheet-checkboxes input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = true);
+}
+
+function clearAllSheets() {
+    const checkboxes = document.querySelectorAll('#sheet-checkboxes input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = false);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize managers
     LoadingManager.init();
@@ -482,6 +615,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Spreadsheet file analysis trigger
+    const spreadsheetInput = document.querySelector('input[type="file"][name="spreadsheet"]');
+    if (spreadsheetInput) {
+        spreadsheetInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Trigger analysis
+                analyzeSpreadsheet(file);
+            }
+        });
+    }
     
     // Form submission
     const form = document.getElementById('scheduleForm');
