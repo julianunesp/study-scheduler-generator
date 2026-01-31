@@ -55,3 +55,7 @@ htmlcov/
 *.bak
 *.swp
 .cache/
+
+# Agentic IDE files
+.claude/
+.cursor/

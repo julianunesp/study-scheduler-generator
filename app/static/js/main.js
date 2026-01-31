@@ -473,6 +473,16 @@ const ModalManager = {
                 })
             });
 
+            // Check response status and content type before parsing
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server returned non-JSON response');
+            }
+
             const data = await response.json();
 
             LoadingManager.hide();
@@ -481,7 +491,6 @@ const ModalManager = {
                 alert(`✅ Success! Imported ${data.event_count} events to your Google Calendar!`);
                 // Show the export modal again to allow downloading iCal too
                 this.showExportModal(false); // Don't reset history
-                alert('You can now also download the iCal file or close when done.');
             } else {
                 throw new Error(data.error || 'Failed to import calendar');
             }
