@@ -348,7 +348,7 @@ def list_google_calendars():
     """List user's Google Calendars."""
     try:
         google_service = get_google_service(session)
-        
+
         # Try to load existing credentials
         if not google_service.load_credentials():
             return jsonify({
@@ -356,9 +356,9 @@ def list_google_calendars():
                 'error': 'Not authenticated',
                 'needs_auth': True
             }), 401
-        
+
         calendars = google_service.list_calendars()
-        
+
         return jsonify({
             'success': True,
             'calendars': [
@@ -369,6 +369,79 @@ def list_google_calendars():
                 }
                 for cal in calendars
             ]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@main_bp.route('/google/search-duplicates', methods=['POST'])
+def search_duplicate_events():
+    """Search for duplicate study block events in a calendar."""
+    try:
+        data = request.get_json()
+        calendar_id = data.get('calendar_id', 'primary')
+        course_name = data.get('course_name', 'Study')
+
+        google_service = get_google_service(session)
+
+        # Check authentication
+        if not google_service.load_credentials():
+            return jsonify({
+                'success': False,
+                'error': 'Not authenticated',
+                'needs_auth': True
+            }), 401
+
+        # Search for existing events
+        events = google_service.search_existing_events(
+            calendar_id=calendar_id,
+            course_name=course_name
+        )
+
+        return jsonify({
+            'success': True,
+            'count': len(events),
+            'events': events
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@main_bp.route('/google/delete-duplicates', methods=['POST'])
+def delete_duplicate_events():
+    """Delete multiple events from a calendar."""
+    try:
+        data = request.get_json()
+        calendar_id = data.get('calendar_id', 'primary')
+        event_ids = data.get('event_ids', [])
+
+        if not event_ids:
+            return jsonify({'success': False, 'error': 'No event IDs provided'}), 400
+
+        google_service = get_google_service(session)
+
+        # Check authentication
+        if not google_service.load_credentials():
+            return jsonify({
+                'success': False,
+                'error': 'Not authenticated',
+                'needs_auth': True
+            }), 401
+
+        # Delete events
+        result = google_service.delete_events(calendar_id, event_ids)
+
+        if result['failed'] > 0:
+            message = f"Deleted {result['deleted']} events, {result['failed']} failed"
+        else:
+            message = f"Deleted {result['deleted']} events successfully"
+
+        return jsonify({
+            'success': True,
+            'deleted': result['deleted'],
+            'failed': result['failed'],
+            'message': message,
+            'errors': result['errors'] if result['failed'] > 0 else []
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

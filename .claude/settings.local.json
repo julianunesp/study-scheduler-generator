@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c:*)",
+      "Bash(python3 -m pip:*)",
+      "Bash(ls:*)",
+      "Bash(unzip:*)",
+      "Bash(python:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}

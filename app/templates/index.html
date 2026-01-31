@@ -521,7 +521,38 @@ Not Started
             </div>
         </div>
     </div>
-    
+
+    <!-- Duplicate Confirmation Modal -->
+    <div id="duplicateConfirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-icon warning-icon">⚠️</div>
+                <h2 class="modal-title">Duplicate Events Found</h2>
+                <p id="duplicateMessage" class="modal-description">
+                    <!-- Dynamic message will be inserted here -->
+                </p>
+                <p class="warning-text">
+                    ⚠️ These events will be permanently deleted before importing your new schedule.
+                </p>
+            </div>
+            <div class="event-list-container">
+                <div id="duplicateEventsList" class="event-list">
+                    <!-- Event list will be dynamically added here -->
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn-modal btn-modal-danger" onclick="ModalManager.confirmDeleteDuplicates();" style="flex: 1;">
+                    <i class="fas fa-trash-alt"></i>
+                    Delete & Import
+                </button>
+                <button class="btn-modal btn-modal-secondary" onclick="ModalManager.cancelDuplicateCheck();" style="flex: 1;">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="app-footer">
         <div class="footer-content">

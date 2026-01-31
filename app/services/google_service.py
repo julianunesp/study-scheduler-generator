@@ -244,19 +244,110 @@ class GoogleAPIService:
     def list_calendars(self):
         """
         List all calendars for the authenticated user.
-        
+
         Returns:
             list: List of calendar metadata
         """
         if not self.credentials:
             raise ValueError("Not authenticated. Please authenticate first.")
-        
+
         service = build('calendar', 'v3', credentials=self.credentials)
-        
+
         calendars_result = service.calendarList().list().execute()
         calendars = calendars_result.get('items', [])
-        
+
         return calendars
+
+    def search_existing_events(self, calendar_id='primary', course_name="Study", from_date=None):
+        """
+        Search for existing study block events matching the course name.
+
+        Args:
+            calendar_id (str): Target calendar ID
+            course_name (str): Course name to search for in event summaries
+            from_date (datetime): Start date for search (defaults to today at 00:00:00)
+
+        Returns:
+            list: List of matching events with id, summary, and start time
+        """
+        if not self.credentials:
+            raise ValueError("Not authenticated. Please authenticate first.")
+
+        service = build('calendar', 'v3', credentials=self.credentials)
+
+        # Default to today at 00:00:00 if no date provided
+        if from_date is None:
+            from_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # Format search query with emoji pattern
+        search_query = f"📚 {course_name} - Study Block"
+
+        # Format timeMin in RFC3339 with timezone
+        time_min = from_date.isoformat() + 'Z' if from_date.tzinfo is None else from_date.isoformat()
+
+        try:
+            events_result = service.events().list(
+                calendarId=calendar_id,
+                q=search_query,
+                timeMin=time_min,
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
+
+            events = events_result.get('items', [])
+
+            # Extract relevant information
+            matching_events = []
+            for event in events:
+                matching_events.append({
+                    'id': event['id'],
+                    'summary': event.get('summary', ''),
+                    'start': event['start'].get('dateTime', event['start'].get('date'))
+                })
+
+            return matching_events
+
+        except Exception as e:
+            # Return empty list on error rather than raising
+            return []
+
+    def delete_events(self, calendar_id, event_ids):
+        """
+        Delete multiple events from a calendar.
+
+        Args:
+            calendar_id (str): Target calendar ID
+            event_ids (list): List of event IDs to delete
+
+        Returns:
+            dict: Deletion results with counts and errors
+        """
+        if not self.credentials:
+            raise ValueError("Not authenticated. Please authenticate first.")
+
+        service = build('calendar', 'v3', credentials=self.credentials)
+
+        deleted_count = 0
+        failed_ids = []
+        error_messages = []
+
+        for event_id in event_ids:
+            try:
+                service.events().delete(
+                    calendarId=calendar_id,
+                    eventId=event_id
+                ).execute()
+                deleted_count += 1
+            except Exception as e:
+                failed_ids.append(event_id)
+                error_messages.append(f"Event {event_id}: {str(e)}")
+
+        return {
+            'deleted': deleted_count,
+            'failed': len(failed_ids),
+            'failed_ids': failed_ids,
+            'errors': error_messages
+        }
 
 
 def get_google_service(session=None):

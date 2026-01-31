@@ -89,6 +89,8 @@ const ModalManager = {
     calendarData: null,
     spreadsheetData: null,
     modalHistory: [], // Stack to track modal navigation
+    currentCalendarId: null, // Store calendar ID for duplicate flow
+    duplicatesData: null, // Store duplicate events data
     
     showSpreadsheetModal(addToHistory = true) {
         const modal = document.getElementById('spreadsheetModal');
@@ -302,11 +304,160 @@ const ModalManager = {
     },
     
     async importToSelectedCalendar(calendarId) {
+        // Hide calendar selection modal
         this.hide();
+
+        // Show loading for duplicate check
+        LoadingManager.show('scheduling');
+        LoadingManager.text.innerHTML = 'Checking for duplicates<div class="loading-dots"><span></span><span></span><span></span></div>';
+        LoadingManager.subtext.textContent = 'Searching for existing events...';
+
+        try {
+            // Check for duplicate events
+            const duplicates = await this.checkForDuplicates(calendarId);
+
+            LoadingManager.hide();
+
+            if (duplicates.count > 0) {
+                // Store calendar ID for later use
+                this.currentCalendarId = calendarId;
+                this.duplicatesData = duplicates;
+
+                // Show confirmation modal
+                this.showDuplicateConfirmation(calendarId, duplicates);
+            } else {
+                // No duplicates, proceed with import
+                await this.proceedWithImport(calendarId);
+            }
+        } catch (error) {
+            LoadingManager.hide();
+            // Show the export modal again on error
+            this.showExportModal(false);
+            alert('Error checking for duplicates: ' + error.message);
+        }
+    },
+
+    async checkForDuplicates(calendarId) {
+        const courseName = document.getElementById('course_name').value || 'Study';
+
+        const response = await fetch('/google/search-duplicates', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                calendar_id: calendarId,
+                course_name: courseName
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to check for duplicates');
+        }
+
+        return await response.json();
+    },
+
+    showDuplicateConfirmation(calendarId, duplicates) {
+        const modal = document.getElementById('duplicateConfirmationModal');
+        const message = document.getElementById('duplicateMessage');
+        const eventsList = document.getElementById('duplicateEventsList');
+
+        // Update message
+        const courseName = document.getElementById('course_name').value || 'Study';
+        message.textContent = `We found ${duplicates.count} existing event${duplicates.count > 1 ? 's' : ''} for "${courseName}" in this calendar.`;
+
+        // Clear and populate events list
+        eventsList.innerHTML = '';
+
+        duplicates.events.forEach(event => {
+            const eventItem = document.createElement('div');
+            eventItem.className = 'duplicate-event-item';
+
+            // Format date
+            const eventDate = new Date(event.start);
+            const formattedDate = eventDate.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            eventItem.innerHTML = `
+                <span class="event-date">${formattedDate}</span>
+                <span class="event-summary">${event.summary}</span>
+            `;
+
+            eventsList.appendChild(eventItem);
+        });
+
+        // Show modal
+        this.currentModal = modal;
+        modal.classList.add('active');
+        this.modalHistory.push('duplicateConfirmation');
+    },
+
+    async confirmDeleteDuplicates() {
+        // Hide modal
+        this.hide();
+
+        // Show loading
+        LoadingManager.show('scheduling');
+        LoadingManager.text.innerHTML = 'Deleting old events<div class="loading-dots"><span></span><span></span><span></span></div>';
+        LoadingManager.subtext.textContent = 'Removing duplicate events...';
+
+        try {
+            // Extract event IDs from duplicates
+            const eventIds = this.duplicatesData.events.map(e => e.id);
+
+            // Delete events
+            const response = await fetch('/google/delete-duplicates', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    calendar_id: this.currentCalendarId,
+                    event_ids: eventIds
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to delete events');
+            }
+
+            if (data.failed > 0) {
+                LoadingManager.hide();
+                const proceed = confirm(`⚠️ Deleted ${data.deleted} events, but ${data.failed} failed.\n\nDo you want to proceed with import anyway?`);
+                if (!proceed) {
+                    this.showExportModal(false);
+                    return;
+                }
+                LoadingManager.show('scheduling');
+            }
+
+            // Proceed with import
+            await this.proceedWithImport(this.currentCalendarId);
+
+        } catch (error) {
+            LoadingManager.hide();
+            this.showExportModal(false);
+            alert('Error deleting events: ' + error.message);
+        }
+    },
+
+    cancelDuplicateCheck() {
+        // Hide duplicate modal
+        this.hide();
+
+        // Show calendar selection modal again
+        this.showCalendarSelectionModal(false);
+    },
+
+    async proceedWithImport(calendarId) {
         LoadingManager.show('scheduling');
         LoadingManager.text.innerHTML = 'Importing to Google Calendar<div class="loading-dots"><span></span><span></span><span></span></div>';
         LoadingManager.subtext.textContent = 'Creating events in your calendar...';
-        
+
         try {
             const response = await fetch('/google/import-calendar', {
                 method: 'POST',
@@ -318,11 +469,11 @@ const ModalManager = {
                     calendar_id: calendarId
                 })
             });
-            
+
             const data = await response.json();
-            
+
             LoadingManager.hide();
-            
+
             if (data.success) {
                 alert(`✅ Success! Imported ${data.event_count} events to your Google Calendar!`);
                 // Show the export modal again to allow downloading iCal too
