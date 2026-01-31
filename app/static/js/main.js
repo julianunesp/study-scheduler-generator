@@ -92,6 +92,7 @@ const ModalManager = {
     currentCalendarId: null, // Store calendar ID for duplicate flow
     duplicatesData: null, // Store duplicate events data
     pendingFormData: null, // Store form data for preview flow
+    courseName: null, // Store course name for duplicate detection
     
     showSpreadsheetModal(addToHistory = true) {
         const modal = document.getElementById('spreadsheetModal');
@@ -339,8 +340,8 @@ const ModalManager = {
     },
 
     async checkForDuplicates(calendarId) {
-        const courseNameElement = document.getElementById('course_name');
-        const courseName = courseNameElement ? courseNameElement.value : 'Study';
+        // Use stored course name from form submission
+        const courseName = this.courseName || 'Study';
 
         const response = await fetch('/google/search-duplicates', {
             method: 'POST',
@@ -363,9 +364,8 @@ const ModalManager = {
         const message = document.getElementById('duplicateMessage');
         const eventsList = document.getElementById('duplicateEventsList');
 
-        // Update message
-        const courseNameElement = document.getElementById('course_name');
-        const courseName = courseNameElement ? courseNameElement.value : 'Study';
+        // Update message using stored course name
+        const courseName = this.courseName || 'Study';
         message.textContent = `We found ${duplicates.count} existing event${duplicates.count > 1 ? 's' : ''} for "${courseName}" in this calendar.`;
 
         // Clear and populate events list
@@ -672,8 +672,9 @@ function handleFormSubmit(event) {
         }
     }
 
-    // Store form data for later use
+    // Store form data and course name for later use
     ModalManager.pendingFormData = formData;
+    ModalManager.courseName = formData.get('course_name') || 'Study';
 
     // Show thinking animation
     LoadingManager.show('thinking');
