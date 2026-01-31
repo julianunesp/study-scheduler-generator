@@ -19,16 +19,62 @@ def apply_multiplier(classes, multiplier):
     return [[cls[0], cls[1], float(cls[2]) * float(multiplier)] for cls in classes]
 
 
-def schedule_classes(classes, start_date, study_days, daily_study_limit_hours):
+def calculate_schedule_preview(classes, start_date, study_days, daily_study_limit_hours):
     """
-    Schedule classes across available study days.
-    
+    Calculate schedule metadata without generating full calendar.
+
     Args:
         classes (list): List of [status, subject, duration] for each class
         start_date (date): First day to schedule
         study_days (list): List of weekday integers (0=Monday, 6=Sunday)
         daily_study_limit_hours (int): Maximum hours per day
-    
+
+    Returns:
+        dict: Schedule preview metadata with:
+            - total_content_hours: Total hours of content
+            - total_study_days: Number of study days needed
+            - end_date: Expected completion date
+            - calendar_days: Total calendar days from start to end
+    """
+    total_content_minutes = sum(cls[2] for cls in classes)
+    total_content_hours = total_content_minutes / 60
+
+    # Calculate how many study days needed
+    daily_study_limit_minutes = daily_study_limit_hours * 60
+    study_days_needed = math.ceil(total_content_minutes / daily_study_limit_minutes)
+
+    # Calculate end date by finding the Nth study day
+    current_date = start_date
+    study_days_count = 0
+
+    while study_days_count < study_days_needed:
+        if current_date.weekday() in study_days:
+            study_days_count += 1
+        if study_days_count < study_days_needed:
+            current_date += timedelta(days=1)
+
+    end_date = current_date
+    calendar_days = (end_date - start_date).days + 1
+
+    return {
+        'total_content_hours': round(total_content_hours, 2),
+        'total_study_days': study_days_needed,
+        'end_date': end_date.isoformat(),
+        'calendar_days': calendar_days,
+        'total_classes': len(classes)
+    }
+
+
+def schedule_classes(classes, start_date, study_days, daily_study_limit_hours):
+    """
+    Schedule classes across available study days.
+
+    Args:
+        classes (list): List of [status, subject, duration] for each class
+        start_date (date): First day to schedule
+        study_days (list): List of weekday integers (0=Monday, 6=Sunday)
+        daily_study_limit_hours (int): Maximum hours per day
+
     Returns:
         dict: Dictionary mapping dates to lists of classes scheduled for that day
         Each class entry is: [status, title, scheduled_duration, original_duration]
@@ -42,7 +88,7 @@ def schedule_classes(classes, start_date, study_days, daily_study_limit_hours):
         # Store original duration before modifying
         original_duration = cls[2]
         remaining_duration = original_duration
-        
+
         while remaining_duration > 0:
             if current_date.weekday() in study_days:
                 if time_left >= remaining_duration:

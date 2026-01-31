@@ -403,7 +403,94 @@ Not Started
             </form>
         </div>
     </div>
-    
+
+    <!-- Schedule Preview Modal -->
+    <div id="schedulePreviewModal" class="modal-overlay">
+        <div class="modal-content preview-modal">
+            <div class="modal-header">
+                <div class="modal-icon">🎯</div>
+                <h2 class="modal-title">Schedule Preview</h2>
+                <p class="modal-description">
+                    Review your projected study schedule before generating the calendar
+                </p>
+            </div>
+
+            <div class="preview-content">
+                <div class="preview-course-name">
+                    <span class="preview-label">Course:</span>
+                    <span id="previewCourseName" class="preview-value-large"></span>
+                </div>
+
+                <div class="preview-stats-grid">
+                    <div class="preview-stat-card">
+                        <div class="preview-stat-icon">📚</div>
+                        <div class="preview-stat-content">
+                            <div class="preview-stat-label">Total Content</div>
+                            <div id="previewTotalHours" class="preview-stat-value"></div>
+                        </div>
+                    </div>
+
+                    <div class="preview-stat-card">
+                        <div class="preview-stat-icon">📖</div>
+                        <div class="preview-stat-content">
+                            <div class="preview-stat-label">Total Classes</div>
+                            <div id="previewTotalClasses" class="preview-stat-value"></div>
+                        </div>
+                    </div>
+
+                    <div class="preview-stat-card">
+                        <div class="preview-stat-icon">📅</div>
+                        <div class="preview-stat-content">
+                            <div class="preview-stat-label">Study Days Needed</div>
+                            <div id="previewStudyDays" class="preview-stat-value"></div>
+                        </div>
+                    </div>
+
+                    <div class="preview-stat-card">
+                        <div class="preview-stat-icon">🏁</div>
+                        <div class="preview-stat-content">
+                            <div class="preview-stat-label">Expected End Date</div>
+                            <div id="previewEndDate" class="preview-stat-value"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-timeline">
+                    <div class="timeline-item">
+                        <span class="timeline-label">Start Date:</span>
+                        <span id="previewStartDate" class="timeline-value"></span>
+                    </div>
+                    <div class="timeline-arrow">→</div>
+                    <div class="timeline-item">
+                        <span class="timeline-label">Calendar Days:</span>
+                        <span id="previewCalendarDays" class="timeline-value"></span>
+                    </div>
+                    <div class="timeline-arrow">→</div>
+                    <div class="timeline-item">
+                        <span class="timeline-label">End Date:</span>
+                        <span id="previewEndDateTimeline" class="timeline-value"></span>
+                    </div>
+                </div>
+
+                <div class="preview-info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <span>If you need to adjust the schedule, click "Adjust" to modify your study parameters.</span>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn-modal btn-modal-secondary" onclick="ModalManager.adjustSchedule();" style="flex: 1;">
+                    <i class="fas fa-edit"></i>
+                    Adjust
+                </button>
+                <button class="btn-modal btn-modal-primary" onclick="ModalManager.confirmSchedule();" style="flex: 1;">
+                    <i class="fas fa-check"></i>
+                    Confirm & Generate
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">

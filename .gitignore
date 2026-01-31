@@ -55,3 +55,6 @@ htmlcov/
 *.bak
 *.swp
 .cache/
+
+# Agentic specific
+.claude/

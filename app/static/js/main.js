@@ -91,6 +91,7 @@ const ModalManager = {
     modalHistory: [], // Stack to track modal navigation
     currentCalendarId: null, // Store calendar ID for duplicate flow
     duplicatesData: null, // Store duplicate events data
+    pendingFormData: null, // Store form data for preview flow
     
     showSpreadsheetModal(addToHistory = true) {
         const modal = document.getElementById('spreadsheetModal');
@@ -338,7 +339,8 @@ const ModalManager = {
     },
 
     async checkForDuplicates(calendarId) {
-        const courseName = document.getElementById('course_name').value || 'Study';
+        const courseNameElement = document.getElementById('course_name');
+        const courseName = courseNameElement ? courseNameElement.value : 'Study';
 
         const response = await fetch('/google/search-duplicates', {
             method: 'POST',
@@ -362,7 +364,8 @@ const ModalManager = {
         const eventsList = document.getElementById('duplicateEventsList');
 
         // Update message
-        const courseName = document.getElementById('course_name').value || 'Study';
+        const courseNameElement = document.getElementById('course_name');
+        const courseName = courseNameElement ? courseNameElement.value : 'Study';
         message.textContent = `We found ${duplicates.count} existing event${duplicates.count > 1 ? 's' : ''} for "${courseName}" in this calendar.`;
 
         // Clear and populate events list
@@ -570,6 +573,82 @@ const ModalManager = {
             this.showSpreadsheetModal(false);
             alert('Error: ' + error.message);
         }
+    },
+
+    showPreviewModal(previewData) {
+        const modal = document.getElementById('schedulePreviewModal');
+
+        // Populate course name
+        document.getElementById('previewCourseName').textContent = previewData.course_name;
+
+        // Populate stats
+        document.getElementById('previewTotalHours').textContent = `${previewData.total_content_hours} hours`;
+        document.getElementById('previewTotalClasses').textContent = `${previewData.total_classes} classes`;
+        document.getElementById('previewStudyDays').textContent = `${previewData.total_study_days} days`;
+
+        // Format end date
+        const endDate = new Date(previewData.end_date);
+        const formattedEndDate = endDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+        document.getElementById('previewEndDate').textContent = formattedEndDate;
+
+        // Format start date for timeline
+        const startDate = new Date(previewData.start_date);
+        const formattedStartDate = startDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+        document.getElementById('previewStartDate').textContent = formattedStartDate;
+        document.getElementById('previewCalendarDays').textContent = `${previewData.calendar_days} days`;
+        document.getElementById('previewEndDateTimeline').textContent = formattedEndDate;
+
+        // Show modal
+        this.currentModal = modal;
+        modal.classList.add('active');
+    },
+
+    adjustSchedule() {
+        // Hide preview modal and allow user to adjust form
+        this.hide();
+        // Scroll back to form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    async confirmSchedule() {
+        // Hide preview modal
+        this.hide();
+
+        // Show generating animation
+        LoadingManager.show('scheduling');
+
+        try {
+            // Generate the full schedule using stored form data
+            const response = await fetch('/generate', {
+                method: 'POST',
+                body: this.pendingFormData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Store the data
+                this.calendarData = data.calendar;
+                this.spreadsheetData = data.spreadsheet;
+
+                LoadingManager.hide();
+                this.showSpreadsheetModal();
+            } else {
+                LoadingManager.hide();
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
+            }
+        } catch (error) {
+            LoadingManager.hide();
+            alert('Error: ' + error.message);
+        }
     }
 };
 
@@ -593,30 +672,27 @@ function handleFormSubmit(event) {
         }
     }
 
+    // Store form data for later use
+    ModalManager.pendingFormData = formData;
+
     // Show thinking animation
     LoadingManager.show('thinking');
-    
-    fetch('/generate', {
+    LoadingManager.text.innerHTML = 'Calculating schedule<div class="loading-dots"><span></span><span></span><span></span></div>';
+    LoadingManager.subtext.textContent = 'Analyzing your study parameters...';
+
+    // Call preview endpoint first
+    fetch('/preview-schedule', {
         method: 'POST',
         body: formData
     })
     .then(response => response.json())
     .then(data => {
+        LoadingManager.hide();
+
         if (data.success) {
-            // Change to scheduling animation
-            LoadingManager.show('scheduling');
-            
-            // Store the data
-            ModalManager.calendarData = data.calendar;
-            ModalManager.spreadsheetData = data.spreadsheet;
-            
-            // Simulate scheduling time (remove this in production)
-            setTimeout(() => {
-                LoadingManager.hide();
-                ModalManager.showSpreadsheetModal();
-            }, 1500);
+            // Show preview modal with calculated data
+            ModalManager.showPreviewModal(data.preview);
         } else {
-            LoadingManager.hide();
             alert('Error: ' + (data.error || 'Unknown error occurred'));
         }
     })

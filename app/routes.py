@@ -14,6 +14,7 @@ from .services import (
     apply_multiplier,
     schedule_classes,
     create_calendar_events,
+    calculate_schedule_preview,
     get_html_parser,
     get_google_service
 )
@@ -188,6 +189,100 @@ def analyze_spreadsheet():
             'success': False,
             'error': f'Failed to analyze spreadsheet: {str(e)}'
         }), 500
+
+
+@main_bp.route('/preview-schedule', methods=['POST'])
+def preview_schedule():
+    """Preview schedule statistics before generating files."""
+    try:
+        import time
+        start_time = time.time()
+
+        # Extract form data
+        start_date_str = request.form['start_date']
+        study_days_list = request.form.getlist('study_days')
+        daily_study_limit_hours = int(request.form['daily_study_limit_hours'])
+        multiplier = float(request.form['multiplier'])
+        list_type = request.form['list_type']
+        course_name = request.form.get('course_name', 'Study')
+
+        # Parse classes based on input type (same logic as /generate)
+        if list_type == 'udemy':
+            classes = parse_udemy_list(request.form['class_input'])
+        elif list_type == 'html':
+            if 'html_file' not in request.files:
+                return jsonify({'success': False, 'error': 'No HTML file uploaded'}), 400
+            html_file = request.files['html_file']
+
+            is_valid, error_msg = validate_file_upload(html_file, ['html'])
+            if not is_valid:
+                return jsonify({'success': False, 'error': error_msg}), 400
+
+            html_content = html_file.read().decode('utf-8')
+
+            try:
+                parser = get_html_parser()
+
+                elapsed = time.time() - start_time
+                if elapsed > 8:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Request timeout. HTML parsing is taking too long. Please try with a smaller file or use spreadsheet format.'
+                    }), 408
+
+                classes = parser.parse_html_to_classes_list(html_content)
+
+                if not classes:
+                    return jsonify({'success': False, 'error': 'Could not extract course content from HTML'}), 400
+            except Exception as e:
+                error_msg = str(e)
+                if 'timeout' in error_msg.lower() or 'timed out' in error_msg.lower():
+                    return jsonify({
+                        'success': False,
+                        'error': 'AI parsing timeout. Please try with a smaller HTML file or use spreadsheet format instead.'
+                    }), 408
+                return jsonify({'success': False, 'error': f'Error parsing HTML: {error_msg}'}), 500
+        else:  # spreadsheet
+            if 'spreadsheet' not in request.files:
+                return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+            file = request.files['spreadsheet']
+
+            is_valid, error_msg = validate_file_upload(file, ['xlsx', 'xls'])
+            if not is_valid:
+                return jsonify({'success': False, 'error': error_msg}), 400
+
+            selected_sheets = request.form.getlist('selected_sheets[]')
+
+            if selected_sheets:
+                classes = parse_spreadsheet(file, selected_sheets=selected_sheets)
+            else:
+                classes = parse_spreadsheet(file)
+
+        # Apply time multiplier
+        adjusted_classes = apply_multiplier(classes, multiplier)
+
+        # Calculate preview without generating files
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        study_days = [int(day) for day in study_days_list]
+
+        preview_data = calculate_schedule_preview(
+            adjusted_classes,
+            start_date,
+            study_days,
+            daily_study_limit_hours
+        )
+
+        # Add additional info
+        preview_data['course_name'] = course_name
+        preview_data['start_date'] = start_date_str
+
+        return jsonify({
+            'success': True,
+            'preview': preview_data
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @main_bp.route('/generate', methods=['POST'])
